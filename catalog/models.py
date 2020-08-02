@@ -1,8 +1,10 @@
 from django.db import models
 
+from django.urls import reverse  # To generate URLS by reversing URL patterns
+
 # Create your models here.
 
-class Genre (models.Model):
+class Genre(models.Model):
     name = models.CharField(max_length=200, help_text='Enter a book genre (e.g. Science Fiction)')
 
    #Metadata
@@ -16,6 +18,16 @@ class Genre (models.Model):
     def __str__(self):
        return self.name
 
+class Language(models.Model):
+    """Model representing a Language (e.g. English, French, Japanese, etc.)"""
+    name = models.CharField(max_length=200,
+                            help_text="Enter the book's natural language (e.g. English, French, Japanese etc.)")
+
+    def __str__(self):
+        """String for representing the Model object (in Admin site etc.)"""
+        return self.name
+
+
 class Book (models.Model):
     title = models.CharField(max_length=200, help_text='Enter field documentation')
     # Foreign Key used because book can only have one author, but authors can have multiple books
@@ -28,6 +40,12 @@ class Book (models.Model):
     # ManyToManyField used because genre can contain many books. Books can cover many genres.
     # Genre class has already been defined so we can specify the object above.
     genre = models.ManyToManyField(Genre, help_text='Select a genre for this book')
+
+    def display_genre(self):
+        """Create a string for the Genre. This is required to display genre in Admin."""
+        return ', '.join(genre.name for genre in self.genre.all()[:3])
+    
+        display_genre.short_description = 'Genre'
 
     #Metadata
     # class Meta :
