@@ -2,6 +2,10 @@ from django.db import models
 
 from django.urls import reverse  # To generate URLS by reversing URL patterns
 
+from django.contrib.auth.models import User
+
+from datetime import date
+
 # Create your models here.
 
 class Genre(models.Model):
@@ -40,6 +44,7 @@ class Book (models.Model):
     # ManyToManyField used because genre can contain many books. Books can cover many genres.
     # Genre class has already been defined so we can specify the object above.
     genre = models.ManyToManyField(Genre, help_text='Select a genre for this book')
+    language = models.ForeignKey('Language', on_delete=models.SET_NULL, null=True)
 
     def display_genre(self):
         """Create a string for the Genre. This is required to display genre in Admin."""
@@ -81,20 +86,55 @@ class BookInstance(models.Model):
         default='m',
         help_text='Book availability',
     )
+    borrower = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         ordering = ['due_back']
+        permissions = (("can_mark_returned", "Set book as returned"),)
+    
+    @property
+    def is_overdue(self):
+        if self.due_back and date.today() > self.due_back:
+            return True
+        return False
 
     def __str__(self):
         """String for representing the Model object."""
         return f'{self.id} ({self.book.title})'
+
+"""
+from django.forms import ModelForm
+
+from catalog.models import BookInstance
+
+class RenewBookModelForm(ModelForm):
+    def clean_due_back(self):
+       data = self.cleaned_data['due_back']
+       
+       # Check if a date is not in the past.
+       if data < datetime.date.today():
+           raise ValidationError(_('Invalid date - renewal in past'))
+
+       # Check if a date is in the allowed range (+4 weeks from today).
+       if data > datetime.date.today() + datetime.timedelta(weeks=4):
+           raise ValidationError(_('Invalid date - renewal more than 4 weeks ahead'))
+
+       # Remember to always return the cleaned data.
+       return data
+       
+    class Meta:
+        model = BookInstance
+        fields = ['due_back']
+        labels = {'due_back': _('New renewal date')}
+        help_texts = {'due_back': _('Enter a date between now and 4 weeks (default 3).')} 
+"""
 
 class Author(models.Model):
     """Model representing an author."""
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
     date_of_birth = models.DateField(null=True, blank=True)
-    date_of_death = models.DateField('Died', null=True, blank=True)
+    date_of_death = models.DateField('died', null=True, blank=True)
 
     class Meta:
         ordering = ['last_name', 'first_name']
